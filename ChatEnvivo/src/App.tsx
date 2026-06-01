@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
-
+import Personas from "./personas";
 const socket = io("http://localhost:3000");
 
 function App() {
@@ -51,6 +51,7 @@ function App() {
       <button onClick={enviarMensaje}>
         Enviar
       </button>
+      <Personas onSeleccionarPersona={(persona) => console.log("Persona seleccionada:", persona)} />
     </div>
   );
 }
