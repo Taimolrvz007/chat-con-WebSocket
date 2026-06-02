@@ -1,0 +1,42 @@
+/* ─── Personas ─── */
+.personas-container {
+  margin-top: 20px;
+  background: #2b2d31;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.personas-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: white;
+  margin-bottom: 12px;
+}
+
+.personas-subtitle {
+  font-size: 13px;
+  color: #6d6f78;
+  margin: 14px 0 8px;
+}
+
+.personas-list {
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.persona-item {
+  background: #404249;
+  color: #dbdee1;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.persona-item:hover {
+  background: #5865f2;
+  color: white;
+}

@@ -1,6 +1,5 @@
-// haremos que la persona que envie mensajes tenga un nombre, para eso crearemos un nuevo componente llamado Personas.tsx
-
 import { useState } from "react";
+import "./estetica.css"; // ✅ corregido
 
 interface Persona {
   id: string;
@@ -20,27 +19,27 @@ const Personas: React.FC<Props> = ({ onSeleccionarPersona }) => {
     { id: "3", nombre: "Charlie" },
   ];
 
-  const seleccionarPersona = (persona: Persona) => {
-    onSeleccionarPersona(persona);
-  };
-
   return (
-    <div style={{ marginBottom: "20px" }}>
-      <h2>Selecciona tu persona</h2>
-      <input
-        type="text"
-        value={nombre}
-        onChange={(e) => setNombre(e.target.value)}
-        placeholder="Escribe tu nombre..."
-      />
-      <button onClick={() => seleccionarPersona({ id: Date.now().toString(), nombre })}>
-        Seleccionar
-      </button>
+    <div className="personas-container">
+      <h2 className="personas-title">Selecciona tu persona</h2>
 
-      <h3>Personas disponibles:</h3>
-      <ul>
+      <div className="chat-input">
+        <input
+          type="text"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          placeholder="Escribe tu nombre..."
+        />
+        <button onClick={() => onSeleccionarPersona({ id: Date.now().toString(), nombre })}>
+          Seleccionar
+        </button>
+      </div>
+
+      <h3 className="personas-subtitle">Personas disponibles:</h3>
+      <ul className="personas-list">
         {personas.map((persona) => (
-          <li key={persona.id} onClick={() => seleccionarPersona(persona)}>
+          <li key={persona.id} className="persona-item"
+            onClick={() => onSeleccionarPersona(persona)}>
             {persona.nombre}
           </li>
         ))}
