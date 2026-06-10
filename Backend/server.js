@@ -2,40 +2,64 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const { Pool } = require("pg");
 
 const app = express();
 app.use(cors());
 
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "http://localhost:5173" }
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
 });
 
-// Map de socket.id -> nickname
+// Crear tabla si no existe
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS mensajes (
+      id SERIAL PRIMARY KEY,
+      nickname TEXT NOT NULL,
+      texto TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  console.log("DB lista");
+}
+initDB();
+
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*" }
+});
+
 const usuarios = new Map();
 
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
 
-  // 1. Registro de nickname
+  // Enviar historial al nuevo usuario
+  const { rows } = await pool.query(
+    "SELECT * FROM mensajes ORDER BY created_at ASC LIMIT 50"
+  );
+  socket.emit("historial", rows);
+
   socket.on("registrar", (nickname) => {
     usuarios.set(socket.id, nickname);
-    // Avisar a todos cuántos hay
     io.emit("usuarios_online", usuarios.size);
     io.emit("sistema", `${nickname} se unió al chat`);
   });
 
-  // 2. Mensaje con nombre incluido
-  socket.on("mensaje", (texto) => {
+  socket.on("mensaje", async (texto) => {
     const nickname = usuarios.get(socket.id) || "Anónimo";
+    // Guardar en DB
+    await pool.query(
+      "INSERT INTO mensajes (nickname, texto) VALUES ($1, $2)",
+      [nickname, texto]
+    );
     io.emit("mensaje", { texto, nickname, id: socket.id });
   });
 
-  // 3. Typing indicator
   socket.on("escribiendo", (isTyping) => {
     const nickname = usuarios.get(socket.id);
-    if (nickname) {
-      socket.broadcast.emit("escribiendo", { nickname, isTyping });
-    }
+    if (nickname) socket.broadcast.emit("escribiendo", { nickname, isTyping });
   });
 
   socket.on("disconnect", () => {
@@ -48,4 +72,5 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(3000, () => console.log("Servidor en puerto 3000"));
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));
