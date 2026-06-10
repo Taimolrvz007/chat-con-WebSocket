@@ -22,6 +22,9 @@ function App() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    socket.on("historial", (msgs: Mensaje[]) => {
+  setMensajes(msgs);
+   });
     socket.on("mensaje", (msg: Mensaje) => {
       setMensajes((prev) => [...prev, msg]);
     });
@@ -45,6 +48,7 @@ function App() {
       socket.off("escribiendo");
     };
   }, []);
+  socket.off("historial");
 
   // Auto-scroll al último mensaje
   useEffect(() => {
