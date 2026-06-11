@@ -60,3 +60,13 @@ body {
 .chat-input button:hover {
   background: #4752c4;
 }
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.message-time {
+  font-size: 11px;
+  color: #6d6f78;
+}

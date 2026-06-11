@@ -8,7 +8,10 @@ type Mensaje = {
   texto: string;
   nickname: string;
   id: string;
+  dbId?: number;
   tipo?: "sistema";
+  created_at?: string;
+  reacciones?: { [emoji: string]: number };
 };
 
 function App() {
@@ -23,8 +26,9 @@ function App() {
 
   useEffect(() => {
     socket.on("historial", (msgs: Mensaje[]) => {
-  setMensajes(msgs);
-   });
+      setMensajes(msgs.map((m: any) => ({ ...m, dbId: m.id, id: "" })));
+    });
+
     socket.on("mensaje", (msg: Mensaje) => {
       setMensajes((prev) => [...prev, msg]);
     });
@@ -41,16 +45,31 @@ function App() {
       setEscribiendo(isTyping ? nickname : null);
     });
 
+    socket.on("mensaje_borrado", (dbId: number) => {
+      setMensajes((prev) => prev.filter((m: any) => m.dbId !== dbId));
+    });
+
+    socket.on("reaccion", ({ mensajeId, emoji }: { mensajeId: number; emoji: string }) => {
+      setMensajes((prev) =>
+        prev.map((m: any) =>
+          m.dbId === mensajeId
+            ? { ...m, reacciones: { ...m.reacciones, [emoji]: ((m.reacciones?.[emoji]) || 0) + 1 } }
+            : m
+        )
+      );
+    });
+
     return () => {
+      socket.off("historial");
       socket.off("mensaje");
       socket.off("sistema");
       socket.off("usuarios_online");
       socket.off("escribiendo");
+      socket.off("mensaje_borrado");
+      socket.off("reaccion");
     };
   }, []);
-  socket.off("historial");
 
-  // Auto-scroll al último mensaje
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes]);
@@ -77,7 +96,6 @@ function App() {
     }, 1500);
   };
 
-  // Pantalla de nickname
   if (!nickConfirmado) {
     return (
       <div className="chat-container">
@@ -110,12 +128,32 @@ function App() {
           msg.tipo === "sistema" ? (
             <p key={i} className="message-sistema">{msg.texto}</p>
           ) : (
-            <div
-              key={i}
-              className={`message ${msg.id === socket.id ? "message-own" : ""}`}
-            >
-              <span className="message-nick">{msg.nickname}</span>
+            <div key={i} className={`message ${msg.id === socket.id ? "message-own" : ""}`}>
+              <div className="message-header">
+                <span className="message-nick">{msg.nickname}</span>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <span className="message-time">
+                    {msg.created_at
+                      ? new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                      : ""}
+                  </span>
+                  {msg.id === socket.id && (
+                    <button className="btn-borrar" onClick={() => socket.emit("borrar_mensaje", msg.dbId)}>✕</button>
+                  )}
+                </div>
+              </div>
               <span>{msg.texto}</span>
+              <div className="reacciones">
+                {["👍", "❤️", "😂"].map(emoji => (
+                  <button
+                    key={emoji}
+                    className="btn-reaccion"
+                    onClick={() => socket.emit("reaccion", { mensajeId: msg.dbId, emoji })}
+                  >
+                    {emoji} {msg.reacciones?.[emoji] || ""}
+                  </button>
+                ))}
+              </div>
             </div>
           )
         )}
