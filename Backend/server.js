@@ -12,7 +12,6 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// Crear tabla si no existe
 async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS mensajes (
@@ -35,7 +34,6 @@ const usuarios = new Map();
 
 io.on("connection", async (socket) => {
 
-  // Enviar historial al nuevo usuario
   const { rows } = await pool.query(
     "SELECT * FROM mensajes ORDER BY created_at ASC LIMIT 50"
   );
@@ -49,12 +47,31 @@ io.on("connection", async (socket) => {
 
   socket.on("mensaje", async (texto) => {
     const nickname = usuarios.get(socket.id) || "Anónimo";
-    // Guardar en DB
-    await pool.query(
-      "INSERT INTO mensajes (nickname, texto) VALUES ($1, $2)",
+    const result = await pool.query(
+      "INSERT INTO mensajes (nickname, texto) VALUES ($1, $2) RETURNING *",
       [nickname, texto]
     );
-    io.emit("mensaje", { texto, nickname, id: socket.id });
+    const row = result.rows[0];
+    io.emit("mensaje", {
+      texto,
+      nickname,
+      id: socket.id,
+      dbId: row.id,
+      created_at: row.created_at
+    });
+  });
+
+  socket.on("borrar_mensaje", async (dbId) => {
+    const nickname = usuarios.get(socket.id);
+    await pool.query(
+      "DELETE FROM mensajes WHERE id = $1 AND nickname = $2",
+      [dbId, nickname]
+    );
+    io.emit("mensaje_borrado", dbId);
+  });
+
+  socket.on("reaccion", ({ mensajeId, emoji }) => {
+    io.emit("reaccion", { mensajeId, emoji });
   });
 
   socket.on("escribiendo", (isTyping) => {
